@@ -1,0 +1,69 @@
+version: '3.6'
+services:
+    app:
+        image: galexrt/zulip:1.8.1-0
+        restart: unless-stopped
+        depends_on:
+            - db
+            - mqtt
+            - cache
+            - redis
+        networks:
+            net:
+                aliases:
+                    - zulip
+        ports:
+            - "8880:80"
+            - "8883:443"
+        volumes:
+            - "./data/app/data:/data"
+            - "./data/app/root/.zuliprc:/root/.zuliprc"
+            - "./data/app/root/.cache:/root/.cache"
+        env_file:
+            - ./env_file.env    # Must be editted before running `docker-compose up -d`
+
+    db:
+        image: "quay.io/galexrt/postgres-zulip-tsearchextras:latest"
+        restart: unless-stopped
+        networks:
+            net:
+                aliases:
+                    - postgres
+        volumes:
+            - "./data/db:/var/lib/postgresql/data:rw"
+        environment:
+            - "POSTGRES_USER=zulip"
+            - "POSTGRES_DB=zulip"
+            - "POSTGRES_PASSWORD=zulip"
+
+    mqtt:
+        image: rabbitmq
+        restart: unless-stopped
+        networks:
+            net:
+                aliases:
+                    - rabbitmq
+        hostname: zulip-rabbit
+        environment:
+            - "RABBITMQ_DEFAULT_USER=zulip"
+            - "RABBITMQ_DEFAULT_PASS=zulip"
+
+    cache:
+        image: memcached
+        restart: unless-stopped
+        networks:
+            net:
+                aliases:
+                    - memcached
+
+    redis:
+        image: redis:latest
+        networks: 
+            net:
+                aliases:
+                    - redis
+        volumes:
+            - "./data/redis:/data:rw"
+
+networks:
+    net:
